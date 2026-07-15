@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import List, Optional
 from uuid import UUID
 
+from .interfaces import IKnowledgeRepository
 from .knowledge import Knowledge
 
 
-class KnowledgeRepository:
+class KnowledgeRepository(IKnowledgeRepository):
     """In-memory repository for Knowledge entities."""
 
     def __init__(self) -> None:

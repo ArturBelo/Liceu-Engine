@@ -3,14 +3,14 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
+from .interfaces import IKnowledgeRepository
 from .knowledge import Knowledge
-from .repository import KnowledgeRepository
 
 
 class KnowledgeService:
     """Service layer for Knowledge entity operations."""
 
-    def __init__(self, repository: KnowledgeRepository) -> None:
+    def __init__(self, repository: IKnowledgeRepository) -> None:
         self._repository = repository
 
     def create(self, title: str, content: str, tags: list[str] | None = None) -> Knowledge:
