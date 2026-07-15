@@ -13,9 +13,24 @@ class KnowledgeService:
     def __init__(self, repository: IKnowledgeRepository) -> None:
         self._repository = repository
 
-    def create(self, title: str, content: str, tags: list[str] | None = None) -> Knowledge:
+    def create(
+        self,
+        title: str,
+        content: str,
+        tags: list[str] | None = None,
+        headings: list[str] | None = None,
+        wikilinks: list[str] | None = None,
+        metadata: dict[str, object] | None = None,
+    ) -> Knowledge:
         """Create a new Knowledge item and add it to the repository."""
-        knowledge = Knowledge(title=title, content=content, tags=tags or [])
+        knowledge = Knowledge(
+            title=title,
+            content=content,
+            tags=tags or [],
+            headings=headings or [],
+            wikilinks=wikilinks or [],
+            metadata=metadata or {},
+        )
         self._repository.add(knowledge)
         return knowledge
 
