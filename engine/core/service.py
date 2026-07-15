@@ -23,13 +23,23 @@ class KnowledgeService:
         """Return a Knowledge item by ID, or None if not found."""
         return self._repository.get(id)
 
-    def list(self) -> List[Knowledge]:
-        """Return all Knowledge items from the repository."""
-        return self._repository.list()
+    def list(
+        self,
+        limit: int | None = None,
+        offset: int = 0,
+        order_by: str = "created_at",
+        descending: bool = False,
+    ) -> List[Knowledge]:
+        """Return a sorted and paginated list of Knowledge items."""
+        return self._repository.list(limit=limit, offset=offset, order_by=order_by, descending=descending)
 
     def delete(self, id: UUID) -> bool:
         """Remove a Knowledge item by ID."""
         return self._repository.remove(id)
+
+    def search(self, query: str) -> List[Knowledge]:
+        """Search knowledge items by query text."""
+        return self._repository.search(query)
 
     def update(
         self, id: UUID, title: str, content: str, tags: list[str]

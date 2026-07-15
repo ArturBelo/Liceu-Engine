@@ -19,7 +19,20 @@ class IKnowledgeRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list(self) -> list[Knowledge]:
+    def list(
+        self,
+        limit: int | None = None,
+        offset: int = 0,
+        order_by: str = "created_at",
+        descending: bool = False,
+    ) -> list[Knowledge]:
+        """Return a page of knowledge items.
+
+        limit None returns all items.
+        offset defines the start of the read.
+        order_by accepts only created_at, updated_at or title.
+        Invalid values default to created_at.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -28,4 +41,9 @@ class IKnowledgeRepository(ABC):
 
     @abstractmethod
     def update(self, knowledge: Knowledge) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def search(self, query: str) -> list[Knowledge]:
+        """Search for knowledge items by query text."""
         raise NotImplementedError

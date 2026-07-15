@@ -24,9 +24,26 @@ class KnowledgeRepository(IKnowledgeRepository):
                 return item
         return None
 
-    def list(self) -> List[Knowledge]:
-        """Return a copy of all stored Knowledge items."""
-        return list(self._items)
+    def list(
+        self,
+        limit: int | None = None,
+        offset: int = 0,
+        order_by: str = "created_at",
+        descending: bool = False,
+    ) -> List[Knowledge]:
+        """Return a sorted and paginated copy of stored Knowledge items."""
+        valid_order_fields = {"created_at", "updated_at", "title"}
+        if order_by not in valid_order_fields:
+            order_by = "created_at"
+
+        items = sorted(
+            self._items,
+            key=lambda item: getattr(item, order_by),
+            reverse=descending,
+        )
+        start = max(offset, 0)
+        end = None if limit is None else start + limit
+        return items[start:end]
 
     def remove(self, id: UUID) -> bool:
         """Remove the Knowledge item with the given ID."""
@@ -43,3 +60,12 @@ class KnowledgeRepository(IKnowledgeRepository):
                 self._items[index] = knowledge
                 return True
         return False
+
+    def search(self, query: str) -> list[Knowledge]:
+        """Search knowledge items by title or content, case insensitive."""
+        query_lower = query.lower()
+        return [
+            item
+            for item in self._items
+            if query_lower in item.title.lower() or query_lower in item.content.lower()
+        ]
