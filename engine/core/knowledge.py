@@ -11,5 +11,8 @@ class Knowledge:
     title: str = ""
     content: str = ""
     tags: list[str] = field(default_factory=list)
+    headings: list[str] = field(default_factory=list)
+    wikilinks: list[str] = field(default_factory=list)
+    metadata: dict[str, object] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
