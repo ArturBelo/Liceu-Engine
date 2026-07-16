@@ -130,7 +130,7 @@ class SQLiteKnowledgeRepository(IKnowledgeRepository):
             SELECT * FROM knowledge
             WHERE title LIKE ? COLLATE NOCASE
                OR content LIKE ? COLLATE NOCASE
-            ORDER BY created_at ASC
+            ORDER BY title ASC
             """,
             (query_text, query_text),
         )

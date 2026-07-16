@@ -1,6 +1,7 @@
 from pathlib import Path
 from uuid import UUID
 
+from engine.analytics import VaultAnalyzer
 from engine.core import KnowledgeFactory, KnowledgeRepository, KnowledgeService
 from engine.graph import GraphBuilder
 from engine.parsers import MarkdownParser
@@ -49,6 +50,36 @@ class LiceuEngine:
             if knowledge is not None:
                 related_knowledges.append(knowledge)
         return related_knowledges
+
+    def backlinks(self, title: str):
+        """Return knowledge items that link to the given title via graph edges."""
+        knowledges = self._service.list()
+        target_knowledge = next((item for item in knowledges if item.title == title), None)
+        if target_knowledge is None:
+            return []
+
+        if self._graph is None:
+            self.build_graph()
+
+        neighbors = self._graph.incoming_neighbors(str(target_knowledge.id))
+        backlinks = []
+        for node in neighbors:
+            knowledge = self._repository.get(UUID(node.id))
+            if knowledge is not None:
+                backlinks.append(knowledge)
+        return backlinks
+
+    def stats(self):
+        """Return vault statistics computed by the analyzer."""
+        if self._graph is None:
+            self.build_graph()
+
+        analyzer = VaultAnalyzer(self._repository, self._graph)
+        return {
+            "documents": analyzer.document_count(),
+            "links": analyzer.link_count(),
+            "orphans": analyzer.orphan_count(),
+        }
 
     def import_directory(self, path: Path):
         """Import all Markdown files from a directory recursively."""

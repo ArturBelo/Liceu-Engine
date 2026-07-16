@@ -43,3 +43,16 @@ class KnowledgeGraph:
                 if neighbor is not None:
                     neighbors.append(neighbor)
         return neighbors
+
+    def incoming_neighbors(self, node_id: str) -> List[KnowledgeNode]:
+        """Return all nodes that point to the given node via incoming edges."""
+        if self.get_node(node_id) is None:
+            return []
+
+        neighbors: list[KnowledgeNode] = []
+        for edge in self._edges:
+            if edge.target == node_id:
+                neighbor = self.get_node(edge.source)
+                if neighbor is not None:
+                    neighbors.append(neighbor)
+        return neighbors

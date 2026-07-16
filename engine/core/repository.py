@@ -64,8 +64,9 @@ class KnowledgeRepository(IKnowledgeRepository):
     def search(self, query: str) -> list[Knowledge]:
         """Search knowledge items by title or content, case insensitive."""
         query_lower = query.lower()
-        return [
+        results = [
             item
             for item in self._items
             if query_lower in item.title.lower() or query_lower in item.content.lower()
         ]
+        return sorted(results, key=lambda item: item.title)
