@@ -30,3 +30,16 @@ class KnowledgeGraph:
     def list_edges(self) -> List[KnowledgeEdge]:
         """Return a list of all edges in the graph."""
         return list(self._edges)
+
+    def neighbors(self, node_id: str) -> List[KnowledgeNode]:
+        """Return all nodes directly connected by outgoing edges from the given node."""
+        if self.get_node(node_id) is None:
+            return []
+
+        neighbors: list[KnowledgeNode] = []
+        for edge in self._edges:
+            if edge.source == node_id:
+                neighbor = self.get_node(edge.target)
+                if neighbor is not None:
+                    neighbors.append(neighbor)
+        return neighbors

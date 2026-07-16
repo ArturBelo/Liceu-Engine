@@ -1,6 +1,8 @@
 from pathlib import Path
+from uuid import UUID
 
 from engine.core import KnowledgeFactory, KnowledgeRepository, KnowledgeService
+from engine.graph import GraphBuilder
 from engine.parsers import MarkdownParser
 
 
@@ -10,6 +12,7 @@ class LiceuEngine:
     def __init__(self) -> None:
         self._repository = KnowledgeRepository()
         self._service = KnowledgeService(self._repository)
+        self._graph = None
 
     def add_markdown(self, path: Path):
         """Parse a Markdown file and add it to the knowledge repository."""
@@ -23,6 +26,29 @@ class LiceuEngine:
             wikilinks=knowledge.wikilinks,
             metadata=knowledge.metadata,
         )
+
+    def build_graph(self):
+        """Build and store a KnowledgeGraph for the current knowledge items."""
+        self._graph = GraphBuilder(self._service.list()).build()
+        return self._graph
+
+    def related(self, title: str):
+        """Return knowledge items related to the given title via graph edges."""
+        knowledges = self._service.list()
+        target_knowledge = next((item for item in knowledges if item.title == title), None)
+        if target_knowledge is None:
+            return []
+
+        if self._graph is None:
+            self.build_graph()
+
+        neighbors = self._graph.neighbors(str(target_knowledge.id))
+        related_knowledges = []
+        for node in neighbors:
+            knowledge = self._repository.get(UUID(node.id))
+            if knowledge is not None:
+                related_knowledges.append(knowledge)
+        return related_knowledges
 
     def import_directory(self, path: Path):
         """Import all Markdown files from a directory recursively."""
