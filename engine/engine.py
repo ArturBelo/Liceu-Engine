@@ -14,6 +14,7 @@ class LiceuEngine:
         self._repository = KnowledgeRepository()
         self._service = KnowledgeService(self._repository)
         self._graph = None
+        self._vault_path: Path | None = None
 
     def add_markdown(self, path: Path):
         """Parse a Markdown file and add it to the knowledge repository."""
@@ -81,6 +82,106 @@ class LiceuEngine:
             "orphans": analyzer.orphan_count(),
         }
 
+    def create_document(self, title: str, content: str = ""):
+        """Create a new Markdown document inside the currently opened vault.
+
+        The new file name is derived from the title. The file is created on disk inside
+        the last imported vault, then the existing import flow is used to parse and
+        store the knowledge entity.
+        """
+        if not self._vault_path:
+            from engine.exceptions.errors import ValidationError
+
+            raise ValidationError("No vault is currently opened. Import a vault first.")
+
+        # create a safe filename from the title
+        safe = "".join(c if c.isalnum() or c in (" ", "-", "_") else "_" for c in title).strip()
+        safe = safe.replace(" ", "_") or "untitled"
+        file_path = self._vault_path / f"{safe}.md"
+
+        # avoid overwriting existing files: append a suffix if needed
+        counter = 1
+        base = safe
+        while file_path.exists():
+            file_path = self._vault_path / f"{base}-{counter}.md"
+            counter += 1
+
+        # write content
+        file_path.write_text(content)
+
+        # reuse add_markdown to parse and persist
+        new_knowledge = self.add_markdown(file_path)
+
+        # synchronize the graph after creating new knowledge
+        try:
+            self.build_graph()
+        except Exception:
+            # graph sync should not break creation — fail silently but could be logged
+            pass
+
+        return new_knowledge
+
+    def update_document(self, title: str, content: str):
+        """Update an existing Markdown document identified by title.
+
+        Finds the corresponding file in the currently opened vault by parsing files
+        and matching the produced title, overwrites its content, reparses and
+        updates the repository via the service update flow.
+        """
+        if not self._vault_path:
+            from engine.exceptions.errors import ValidationError
+
+            raise ValidationError("No vault is currently opened. Import a vault first.")
+
+        from engine.exceptions.errors import KnowledgeNotFoundError
+        from engine.parsers import MarkdownParser
+        from engine.core import KnowledgeFactory
+
+        # find existing knowledge in repository
+        existing = next((k for k in self._service.list() if k.title == title), None)
+        if existing is None:
+            raise KnowledgeNotFoundError(f"Knowledge with title '{title}' not found in repository")
+
+        # search for the file in the vault that parses to the same title
+        target_path = None
+        for file in sorted(self._vault_path.rglob("*.md"), key=lambda p: str(p)):
+            try:
+                doc = MarkdownParser(file).parse()
+            except Exception:
+                continue
+            k = KnowledgeFactory.from_markdown(doc)
+            if k.title == title:
+                target_path = file
+                break
+
+        if target_path is None:
+            raise KnowledgeNotFoundError(f"Source Markdown file for '{title}' not found in vault")
+
+        # overwrite file
+        target_path.write_text(content)
+
+        # reparse and update repository via service update
+        new_doc = MarkdownParser(target_path).parse()
+        new_k = KnowledgeFactory.from_markdown(new_doc)
+
+        updated = self._service.update(
+            existing.id,
+            new_k.title,
+            new_k.content,
+            new_k.tags,
+            headings=new_k.headings,
+            wikilinks=new_k.wikilinks,
+        )
+
+        # synchronize the graph after updating knowledge
+        try:
+            self.build_graph()
+        except Exception:
+            # do not break the update flow if graph rebuild fails
+            pass
+
+        return updated
+
     def import_directory(self, path: Path):
         """Import all Markdown files from a directory recursively."""
         directory = Path(path)
@@ -88,6 +189,9 @@ class LiceuEngine:
             raise FileNotFoundError(f"Directory does not exist: {directory}")
         if not directory.is_dir():
             raise NotADirectoryError(f"Path is not a directory: {directory}")
+
+        # remember the opened vault path
+        self._vault_path = directory
 
         markdown_files = sorted(
             [file for file in directory.rglob("*") if file.is_file() and file.suffix.lower() == ".md"],

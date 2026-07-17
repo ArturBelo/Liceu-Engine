@@ -57,9 +57,21 @@ class KnowledgeService:
         return self._repository.search(query)
 
     def update(
-        self, id: UUID, title: str, content: str, tags: list[str]
+        self,
+        id: UUID,
+        title: str,
+        content: str,
+        tags: list[str],
+        headings: list[str] | None = None,
+        wikilinks: list[str] | None = None,
     ) -> Optional[Knowledge]:
-        """Update an existing Knowledge item and return the updated entity."""
+        """Update an existing Knowledge item and return the updated entity.
+
+        headings and wikilinks are optional and if provided will replace the
+        corresponding fields on the stored Knowledge. This keeps the API
+        backward-compatible while allowing callers to update parsing-derived
+        fields when available.
+        """
         existing = self._repository.get(id)
         if existing is None:
             return None
@@ -69,6 +81,8 @@ class KnowledgeService:
             title=title,
             content=content,
             tags=tags,
+            headings=headings if headings is not None else existing.headings,
+            wikilinks=wikilinks if wikilinks is not None else existing.wikilinks,
             updated_at=datetime.now(timezone.utc),
         )
         self._repository.update(updated_knowledge)
